@@ -1,0 +1,88 @@
+#include "stm32l053xx.h"
+
+// Prototipos de funciones
+void ConfigurarRelojSistema(void);
+void InicializarGPIO(void);
+void InicializarTimer2(void);
+void InicializarTimer6(void);
+void InicializarTimer21(void);
+
+int main(void)
+{
+    // Configuraciones del sistema
+    ConfigurarRelojSistema();
+    InicializarGPIO();
+    InicializarTimer2();
+    InicializarTimer6();
+    InicializarTimer21();
+
+    // Bucle principal
+    while (1)
+    {
+        // Toggle LED en PA5 si UIF de Timer2 está configurado
+        if (TIM2->SR & TIM_SR_UIF)
+        {
+            TIM2->SR &= ~TIM_SR_UIF; // Limpiar UIF
+            GPIOA->ODR ^= GPIO_ODR_OD5; // Cambiar estado de PA5
+        }
+
+        // Toggle LED en PA6 si UIF de Timer6 está configurado
+        if (TIM6->SR & TIM_SR_UIF)
+        {
+            TIM6->SR &= ~TIM_SR_UIF; // Limpiar UIF
+            GPIOA->ODR ^= GPIO_ODR_OD6; // Cambiar estado de PA6
+        }
+
+        // Toggle LED en PA7 si UIF de Timer21 está configurado
+        if (TIM21->SR & TIM_SR_UIF)
+        {
+            TIM21->SR &= ~TIM_SR_UIF; // Limpiar UIF
+            GPIOA->ODR ^= GPIO_ODR_OD7; // Cambiar estado de PA7
+        }
+    }
+}
+
+void ConfigurarRelojSistema(void)
+{
+    RCC->CR |= RCC_CR_HSION; // Activar HSI (16 MHz)
+    while (!(RCC->CR & RCC_CR_HSIRDY)); // Esperar a que el HSI esté listo
+
+    RCC->CFGR |= RCC_CFGR_SW_HSI; // Seleccionar HSI como fuente de reloj
+    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI); // Esperar la selección
+}
+
+void InicializarGPIO(void)
+{
+    RCC->IOPENR |= RCC_IOPENR_GPIOAEN; // Habilitar el reloj para GPIOA
+
+    // Configurar PA5, PA6 y PA7 como pines de salida
+    GPIOA->MODER &= ~(GPIO_MODER_MODE5 | GPIO_MODER_MODE6 | GPIO_MODER_MODE7);
+    GPIOA->MODER |= (GPIO_MODER_MODE5_0 | GPIO_MODER_MODE6_0 | GPIO_MODER_MODE7_0);
+}
+
+void InicializarTimer2(void)
+{
+    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN; // Habilitar el reloj para Timer2
+
+    TIM2->PSC = 1599; // Configurar prescaler a 1600-1
+    TIM2->ARR = 9999; // Configurar auto-reload a 9999 para 1 segundo
+    TIM2->CR1 |= TIM_CR1_CEN; // Habilitar Timer2
+}
+
+void InicializarTimer6(void)
+{
+    RCC->APB1ENR |= RCC_APB1ENR_TIM6EN; // Habilitar el reloj para Timer6
+
+    TIM6->PSC = 1599; // Configurar prescaler a 1600-1
+    TIM6->ARR = 4999; // Configurar auto-reload a 4999 para 0.5 segundos
+    TIM6->CR1 |= TIM_CR1_CEN; // Habilitar Timer6
+}
+
+void InicializarTimer21(void)
+{
+    RCC->APB2ENR |= RCC_APB2ENR_TIM21EN; // Habilitar el reloj para Timer21
+
+    TIM21->PSC = 1599; // Configurar prescaler a 1600-1
+    TIM21->ARR = 2499; // Configurar auto-reload a 2499 para 0.25 segundos
+    TIM21->CR1 |= TIM_CR1_CEN; // Habilitar Timer21
+}
